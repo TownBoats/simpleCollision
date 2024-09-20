@@ -1,33 +1,39 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 
 function BigBallEatSmallBalls() {
   const canvasRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(false); // 新增暂停状态
+  const [isGameOver, setIsGameOver] = useState(false); // 新增终止状态
 
   useEffect(() => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const circleRadius = Math.min(width, height) * 0.5;
-    const wallThickness = 5;
-    const numSides = 1000;
-    const gapSize = 100;
-    const ballRadius = circleRadius * 0.03;
-    const hunterBallRadius = ballRadius * 2;
-    const trailDuration = 300;
-    const maxSpeed = 15;
-    const minSpeed = 2;
-    const balls = [];
-    let hunterBall;
-    let rotationAngle = 0;
-    const trails = {};
+    const width = window.innerWidth; // 获取窗口的宽度
+    const height = window.innerHeight; // 获取窗口的高度
+    const circleRadius = Math.min(width, height) * 0.5; // 圆环半径，取宽高较小者的一半
+    const wallThickness = 5; // 圆环边界的厚度
+    const numSides = 1000; // 圆环多边形的边数，越多边数越接近圆形
+    const gapSize = 0; // 圆环缺口大小，0表示无缺口
+    const ballRadius = circleRadius * 0.03; // 猎物球的半径，取圆环半径的3%
+    const hunterBallRadius = ballRadius * 2; // 猎手球的半径，设为猎物球半径的两倍
+    const trailDuration = 300; // 猎物球的轨迹持续显示时间，单位为毫秒
+    const maxSpeed = 15; // 猎物球的最大速度
+    const minSpeed = 2; // 猎物球的最小速度
+    const balls = []; // 存放猎物球的数组
+    let hunterBall; // 猎手球的声明，稍后初始化
+    let rotationAngle = 0; // 圆环的初始旋转角度，初始为0
+    const trails = {}; // 存储球体的轨迹信息，键是球体ID，值是轨迹数组
 
-    const engine = Matter.Engine.create();
-    const world = engine.world;
-    engine.gravity.y = 0;
+    const engine = Matter.Engine.create(); // 创建物理引擎实例
+    const world = engine.world; // 获取物理世界实例
+    engine.gravity.y = 0; // 禁用物理引擎的重力影响，y方向无重力
 
-    const ballCategory = 0x0001;
-    const ringCategory = 0x0002;
-    const hunterCategory = 0x0004;
+    // 定义碰撞类别，控制物体之间的碰撞规则
+    const ballCategory = 0x0001; // 猎物球的碰撞类别
+    const ringCategory = 0x0002; // 圆环的碰撞类别
+    const hunterCategory = 0x0004; // 猎手球的碰撞类别
+
+
+
 
     const render = Matter.Render.create({
       canvas: canvasRef.current,
@@ -132,9 +138,13 @@ function BigBallEatSmallBalls() {
     Matter.Render.run(render);
 
     // 使用自定义的引擎更新循环
+    let animationFrameId;
     const update = () => {
-      Matter.Engine.update(engine, 1000 / 60); // 手动更新物理引擎，每秒60帧
-      requestAnimationFrame(update); // 递归调用，保持循环
+      if (!isPaused && !isGameOver) { // 检查是否暂停或游戏结束
+        Matter.Engine.update(engine, 1000 / 60); // 手动更新物理引擎，每秒60帧
+        Matter.Render.world(render); // 手动渲染画面
+      }
+      animationFrameId = requestAnimationFrame(update); // 递归调用，保持循环
     };
 
     update(); // 启动更新循环
@@ -201,9 +211,16 @@ function BigBallEatSmallBalls() {
       ringBodies.length = 0;
 
       createRing();
+
+      // 检查猎手球的半径是否大于圆环的半径，如果是，游戏结束
+      if (hunterBall.circleRadius >= circleRadius) {
+        setIsGameOver(true); // 设置游戏结束状态
+        setIsPaused(true); // 暂停游戏
+        alert('猎手球胜利！'); // 弹出提示框
+      }
     });
 
-    Matter.Events.on(engine, 'collisionStart', function(event) {
+    Matter.Events.on(engine, 'collisionStart', function (event) {
       event.pairs.forEach(function (pair) {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
@@ -229,17 +246,32 @@ function BigBallEatSmallBalls() {
             balls.splice(preyIndex, 1);
           }
 
-        //   const collisionSound = new Audio('collision.mp3');
-        const collisionSound = new Audio(process.env.PUBLIC_URL + '/collision.mp3');
+          const collisionSound = new Audio(process.env.PUBLIC_URL + '/collision.mp3');
           collisionSound.play();
         }
       });
     });
 
+    // 销毁阶段清除物理引擎与渲染
     return () => {
       Matter.Engine.clear(engine);
       Matter.Render.stop(render);
       Matter.World.clear(world, false);
+      cancelAnimationFrame(animationFrameId); // 取消动画帧循环
+    };
+  }, [isPaused, isGameOver]); // 添加依赖项isPaused, isGameOver
+
+  // 键盘监听事件，按下“P”键暂停或恢复游戏
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'p') {
+        setIsPaused((prev) => !prev); // 切换暂停状态
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
