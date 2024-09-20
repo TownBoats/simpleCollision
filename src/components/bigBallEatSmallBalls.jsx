@@ -32,9 +32,6 @@ function BigBallEatSmallBalls() {
     const ringCategory = 0x0002; // 圆环的碰撞类别
     const hunterCategory = 0x0004; // 猎手球的碰撞类别
 
-
-
-
     const render = Matter.Render.create({
       canvas: canvasRef.current,
       engine: engine,
@@ -214,17 +211,33 @@ function BigBallEatSmallBalls() {
 
       // 检查猎手球的半径是否大于圆环的半径，如果是，游戏结束
       if (hunterBall.circleRadius >= circleRadius) {
+        
         setIsGameOver(true); // 设置游戏结束状态
         setIsPaused(true); // 暂停游戏
-        alert('猎手球胜利！'); // 弹出提示框
+        const collisionSound = new Audio(process.env.PUBLIC_URL + '/sound/win.mp3');
+        collisionSound.play();
       }
     });
 
+    // 碰撞事件监听，处理猎物球和猎手球与墙体碰撞的声音
     Matter.Events.on(engine, 'collisionStart', function (event) {
       event.pairs.forEach(function (pair) {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
 
+        // 检查猎手球与墙壁的碰撞
+        if ((bodyA === hunterBall && ringBodies.includes(bodyB)) || (bodyB === hunterBall && ringBodies.includes(bodyA))) {
+          const collisionSound = new Audio(process.env.PUBLIC_URL + '/sound/3.mp3');
+          collisionSound.play();
+        }
+
+        // 检查猎物球与墙壁的碰撞
+        if ((balls.includes(bodyA) && ringBodies.includes(bodyB)) || (balls.includes(bodyB) && ringBodies.includes(bodyA))) {
+          const collisionSound = new Audio(process.env.PUBLIC_URL + '/sound/2.mp3');
+          collisionSound.play();
+        }
+
+        // 检查猎手球与猎物球的碰撞
         if ((bodyA === hunterBall && balls.includes(bodyB)) || (bodyB === hunterBall && balls.includes(bodyA))) {
           const preyBall = bodyA === hunterBall ? bodyB : bodyA;
 
@@ -246,7 +259,7 @@ function BigBallEatSmallBalls() {
             balls.splice(preyIndex, 1);
           }
 
-          const collisionSound = new Audio(process.env.PUBLIC_URL + '/collision.mp3');
+          const collisionSound = new Audio(process.env.PUBLIC_URL + '/sound/1.mp3');
           collisionSound.play();
         }
       });
