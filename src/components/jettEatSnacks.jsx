@@ -31,7 +31,7 @@ const JettEatSnacks = () => {
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/cake1.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/food/StrawberryCake.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
@@ -48,7 +48,7 @@ const JettEatSnacks = () => {
             restitution: 1,
         });
         const foodImage = new Image();
-        foodImage.src = process.env.PUBLIC_URL +'/images/91_strawberrycake_dish.png';  // 替换为你的图片路径
+        foodImage.src = process.env.PUBLIC_URL +'/images/food/StrawberryCake.png';  // 替换为你的图片路径
         configureSprite(food, foodImage, foodRadius);
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
@@ -117,7 +117,7 @@ const JettEatSnacks = () => {
         const runner = Runner.create();
         const jettBall = createJettBall();
         const food = createFood();
-        food.render.sprite.texture = process.env.PUBLIC_URL +'/images/91_strawberrycake_dish.png';
+        food.render.sprite.texture = process.env.PUBLIC_URL +'/images/food/StrawberryCake.png.png';
         const ring = createRing();
         // Composite.add(engine.world, createRing());
         Composite.add(engine.world, [jettBall, food, ...ring]);
