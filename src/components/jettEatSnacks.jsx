@@ -9,10 +9,10 @@ const JettEatSnacks = () => {
     //圆环属性
     const nside = 100;
     const radius = height * 0.4;
-    const thickness = 7;
+    const thickness = 3;
     const x = width / 2;
     const y = height / 2;
-    const rectWidth = 2 * radius * Math.sin(Math.PI / nside);
+    const rectWidth = 2 * radius * Math.sin(Math.PI / nside)+1;
     let sides = [];
     //jett球的属性
     const jettBallRadius = radius * 0.08;
@@ -31,7 +31,7 @@ const JettEatSnacks = () => {
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/food/fried-chicken.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
