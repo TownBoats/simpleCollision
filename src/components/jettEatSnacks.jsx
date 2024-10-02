@@ -31,7 +31,7 @@ const JettEatSnacks = () => {
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/food/StrawberryCake.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/food/fried-chicken.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
