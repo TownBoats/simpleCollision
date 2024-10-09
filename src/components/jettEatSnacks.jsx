@@ -2,8 +2,9 @@ import React, { useEffect, useRef } from "react";
 import Matter from "matter-js";
 
 const JettEatSnacks = () => {
-    const { Engine, Render, Runner, Bodies, Body, Composite } = Matter;
+    const { Engine, Render, Runner, Bodies, Body, Composite, Events } = Matter;
     const canvasRef = useRef(null);
+    const engineRef = useRef(null);
     const width = window.innerWidth;
     const height = window.innerHeight;
     //圆环属性
@@ -12,7 +13,7 @@ const JettEatSnacks = () => {
     const thickness = 3;
     const x = width / 2;
     const y = height / 2;
-    const rectWidth = 2 * radius * Math.sin(Math.PI / nside)+1;
+    const rectWidth = 2 * radius * Math.sin(Math.PI / nside) + 1;
     let sides = [];
     //jett球的属性
     const jettBallRadius = radius * 0.08;
@@ -28,6 +29,11 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
+            label: 'jettBall',
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0x0002 | 0x0004, // 与 food 触发碰撞事件，与 ring 发生物理碰撞
+            },
         });
 
         const jettImage = new Image();
@@ -46,9 +52,15 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
+            label: 'food',
+            collisionFilter: {
+                category: 0x0002,
+                mask: 0x0001, // 仅与 jettBall 触发碰撞事件
+            },
+            // isSensor: true, // 确保不产生物理影响
         });
         const foodImage = new Image();
-        foodImage.src = process.env.PUBLIC_URL +'/images/food/StrawberryCake.png';  // 替换为你的图片路径
+        foodImage.src = process.env.PUBLIC_URL + '/images/food/StrawberryCake.png';  // 替换为你的图片路径
         configureSprite(food, foodImage, foodRadius);
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
@@ -56,8 +68,8 @@ const JettEatSnacks = () => {
             x: randomSpeed * Math.cos(randomAngle),
             y: randomSpeed * Math.sin(randomAngle),
         });
-        
-        
+
+
         return food;
     }
 
@@ -77,6 +89,11 @@ const JettEatSnacks = () => {
 
             const rectangle = Bodies.rectangle(xMid, yMid, rectWidth, thickness, {
                 isStatic: true,
+                label: 'ring',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001, // 仅与 jettBall 发生物理碰撞
+                },
                 render: {
                     fillStyle: '#3498db'
                 }
@@ -93,17 +110,23 @@ const JettEatSnacks = () => {
             const imageWidth = img.width;
             const imageHeight = img.height;
             const scaleFactor = (2 * radius) / Math.min(imageWidth, imageHeight);
-            
+
             circle.render.sprite.texture = img.src;
             circle.render.sprite.xScale = scaleFactor;
             circle.render.sprite.yScale = scaleFactor;
         };
     }
 
+    function addFoodBall() {
+        const food = createFood();
+        Composite.add(engineRef.current.world, food);
+    }
+
     useEffect(() => {
         // 创建引擎、渲染器、运行器
         const engine = Engine.create();
         engine.gravity.y = 0.5;
+        engineRef.current = engine;
         const render = Render.create({
             element: canvasRef.current,
             engine: engine,
@@ -117,7 +140,7 @@ const JettEatSnacks = () => {
         const runner = Runner.create();
         const jettBall = createJettBall();
         const food = createFood();
-        food.render.sprite.texture = process.env.PUBLIC_URL +'/images/food/StrawberryCake.png.png';
+        food.render.sprite.texture = process.env.PUBLIC_URL + '/images/food/StrawberryCake.png';
         const ring = createRing();
         // Composite.add(engine.world, createRing());
         Composite.add(engine.world, [jettBall, food, ...ring]);
@@ -126,8 +149,26 @@ const JettEatSnacks = () => {
         Render.run(render);
         Runner.run(runner, engine);
 
+        const handleCollision = (event) => {
+            var pairs = event.pairs;
+            pairs.forEach(function (pair) {
+                const { bodyA, bodyB } = pair;
+                if (
+                    (bodyA.label === 'jettBall' && bodyB.label === 'food') ||
+                    (bodyA.label === 'food' && bodyB.label === 'jettBall')
+                ) {
+                    console.log('碰');
+                    const foodBall = bodyA.label === 'food' ? bodyA : bodyB;
+                    Composite.remove(engineRef.current.world, foodBall);
+                }
+            });
+        };
+
+        Events.on(engineRef.current, 'collisionStart', handleCollision);
+
         // 组件卸载时清理
         return () => {
+            Events.off(engineRef.current, 'collisionStart', handleCollision);
             Render.stop(render);
             Runner.stop(runner);
             Composite.clear(engine.world);
@@ -137,7 +178,11 @@ const JettEatSnacks = () => {
         };
     }, [nside]); // 依赖于 nside，允许重新绘制圆环
 
-    return <div ref={canvasRef}></div>;
+    return <div ref={canvasRef}>
+        <button onClick={addFoodBall} style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}>
+            Add Food
+        </button>
+    </div>;
 };
 
 export default JettEatSnacks;
