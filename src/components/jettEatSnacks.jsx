@@ -31,6 +31,7 @@ const JettEatSnacks = () => {
     function getSnackPath() {
         const paths = [process.env.PUBLIC_URL + '/images/snack/StrawberryCake.png',
         process.env.PUBLIC_URL + '/images/snack/colo.png',
+        process.env.PUBLIC_URL + '/images/snack/可乐.png',
         process.env.PUBLIC_URL + '/images/snack/fried-chicken.png',
         process.env.PUBLIC_URL + '/images/snack/sushi.png'];
         let randomIndex = Math.floor(Math.random() * paths.length);
