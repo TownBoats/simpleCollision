@@ -155,7 +155,7 @@ const JettEatSnacks = () => {
         // 初始化音频池
         for (let i = 0; i < maxAudioInstances; i++) {
             const sound = new Howl({
-                src: [process.env.PUBLIC_URL + '/sounds/collision.mp3'],
+                src: [process.env.PUBLIC_URL + '/sounds/collision.wav'],
                 volume: 0.5, // 调整音量
             });
             audioPool.current.push(sound);
