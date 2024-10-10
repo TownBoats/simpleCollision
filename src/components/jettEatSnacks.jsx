@@ -29,6 +29,7 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
+            mass: 0.1, // 设定较大的质量
             label: 'jettBall',
             collisionFilter: {
                 category: 0x0001,
@@ -52,10 +53,11 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
+            mass: 0.1, // 设定较小的质量
             label: 'food',
             collisionFilter: {
                 category: 0x0002,
-                mask: 0x0001, // 仅与 jettBall 触发碰撞事件
+                mask: 0x0001 | 0x0004, //  与 jettBall 和 ring 发生碰撞
             },
             // isSensor: true, // 确保不产生物理影响
         });
@@ -92,7 +94,7 @@ const JettEatSnacks = () => {
                 label: 'ring',
                 collisionFilter: {
                     category: 0x0004,
-                    mask: 0x0001, // 仅与 jettBall 发生物理碰撞
+                    mask: 0x0001 | 0x0002, // 与 jettBall 和 food 发生物理碰撞
                 },
                 render: {
                     fillStyle: '#3498db'
@@ -160,6 +162,10 @@ const JettEatSnacks = () => {
                     console.log('碰');
                     const foodBall = bodyA.label === 'food' ? bodyA : bodyB;
                     Composite.remove(engineRef.current.world, foodBall);
+
+                    //禁止物理碰撞
+                    // pair.activeContacts = [];
+                    pair.isActive = false
                 }
             });
         };
