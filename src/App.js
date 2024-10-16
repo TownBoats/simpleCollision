@@ -5,6 +5,7 @@ import LearnMatterJs from './components/learnMatterJs';
 import LearnConstraint from './components/learnConstraint';
 import InnerPolygon from './components/innerPolygon';
 import JettEatSnacks from './components/jettEatSnacks';
+import LearnHowl from './components/learnHowl';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <LearnConstraint/>
       <InnerPolygon/> */}
       <JettEatSnacks/>
+      {/* <LearnHowl/> */}
     </div>
   );
 }

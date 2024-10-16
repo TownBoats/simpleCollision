@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Matter from "matter-js";
 import { Howl } from "howler";
 
@@ -8,32 +8,36 @@ const JettEatSnacks = () => {
     const engineRef = useRef(null);
     const width = window.innerWidth;
     const height = window.innerHeight;
-    //圆环属性
-    const nside = 10;
+
+    // Game state
+    const [gameStarted, setGameStarted] = useState(false);
+
+    // Circle properties
+    const nside = 100;
     const radius = height * 0.4;
     const thickness = 10;
     const x = width / 2;
     const y = height / 2;
     const rectWidth = 2 * radius * Math.sin(Math.PI / nside) + 1;
     let sides = [];
-    //jett球的属性
-    const jettBallRadius = radius * 0.08;
-    const maxSpeed = 10;
-    const minSpeed = 5;
-    //snack的属性
-    const snackRadius = jettBallRadius * 0.8;
 
-    // 初始化 Howler.js 音频池
+    // jettBall properties
+    const jettBallRadius = radius * 0.1;
+
+    // snack properties
+    const snackRadius = jettBallRadius * 0.7;
+
+    // Audio
     const collisionSound = useRef(null);
-    const maxAudioInstances = 10;
-    const audioPool = useRef([]);
 
     function getSnackPath() {
-        const paths = [process.env.PUBLIC_URL + '/images/snack/StrawberryCake.png',
-        process.env.PUBLIC_URL + '/images/snack/colo.png',
-        process.env.PUBLIC_URL + '/images/snack/可乐.png',
-        process.env.PUBLIC_URL + '/images/snack/fried-chicken.png',
-        process.env.PUBLIC_URL + '/images/snack/sushi.png'];
+        const paths = [
+            process.env.PUBLIC_URL + '/images/snack/StrawberryCake.png',
+            process.env.PUBLIC_URL + '/images/snack/colo.png',
+            process.env.PUBLIC_URL + '/images/snack/可乐.png',
+            process.env.PUBLIC_URL + '/images/snack/fried-chicken.png',
+            process.env.PUBLIC_URL + '/images/snack/sushi.png',
+        ];
         let randomIndex = Math.floor(Math.random() * paths.length);
         return paths[randomIndex];
     }
@@ -43,16 +47,16 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
-            mass: 0.1, // 设定较大的质量
+            mass: 0.1,
             label: 'jettBall',
             collisionFilter: {
                 category: 0x0001,
-                mask: 0x0002 | 0x0004, // 与 snack 触发碰撞事件，与 ring 发生物理碰撞
+                mask: 0x0002 | 0x0004,
             },
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
@@ -62,6 +66,7 @@ const JettEatSnacks = () => {
         });
         return jettBall;
     }
+
     function createSnack() {
         const randomX = (Math.random() * 2 - 1) * radius / 2;
         const randomY = (Math.random() * 2 - 1) * radius / 2;
@@ -70,17 +75,15 @@ const JettEatSnacks = () => {
             friction: 0,
             frictionAir: 0,
             restitution: 1,
-            mass: 0.1, // 设定较小的质量
+            mass: 0.1,
             label: 'snack',
             collisionFilter: {
                 category: 0x0002,
-                // mask: 0x0001 | 0x0004, //  与 jettBall 和 ring 发生碰撞
-                mask: 0x0001 | 0x0004 | 0x0002, //  与 jettBall 和 ring 发生碰撞
+                mask: 0x0001 | 0x0004 | 0x0002,
             },
-            // isSensor: true, // 确保不产生物理影响
         });
         const snackImage = new Image();
-        snackImage.src = getSnackPath();  // 替换为你的图片路径
+        snackImage.src = getSnackPath();
         configureSprite(snack, snackImage, snackRadius);
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
@@ -88,7 +91,6 @@ const JettEatSnacks = () => {
             x: randomSpeed * Math.cos(randomAngle),
             y: randomSpeed * Math.sin(randomAngle),
         });
-
 
         return snack;
     }
@@ -113,19 +115,19 @@ const JettEatSnacks = () => {
                 mass: 0,
                 collisionFilter: {
                     category: 0x0004,
-                    mask: 0x0001 | 0x0002, // 与 jettBall 和 snack 发生物理碰撞
+                    mask: 0x0001 | 0x0002,
                 },
                 render: {
-                    fillStyle: '#3498db'
-                }
+                    fillStyle: '#3498db',
+                },
             });
 
             Body.setAngle(rectangle, Math.atan2(y2 - y1, x2 - x1));
             sides.push(rectangle);
         }
-        console.log("sides:", sides);
         return sides;
     }
+
     function configureSprite(circle, img, radius) {
         img.onload = () => {
             const imageWidth = img.width;
@@ -144,30 +146,48 @@ const JettEatSnacks = () => {
     }
 
     const playCollisionSound = () => {
-        for (let i = 0; i < maxAudioInstances; i++) {
-            if (!audioPool.current[i].playing()) {
-                audioPool.current[i].play();
-                break;
-            }
+        if (collisionSound.current) {
+            collisionSound.current.play();
         }
     };
-    //初始化音频池
-    useEffect(() => {
-        // 初始化音频池
-        for (let i = 0; i < maxAudioInstances; i++) {
-            const sound = new Howl({
-                src: [process.env.PUBLIC_URL + '/sounds/collision.wav'],
-                volume: 0.5, // 调整音量
-            });
-            audioPool.current.push(sound);
-        }
-    }, [])
 
     useEffect(() => {
-        // 创建引擎、渲染器、运行器
+        if (!gameStarted) return; // Do not initialize until the game has started
+
+        // Initialize audio after user interaction
+        collisionSound.current = new Howl({
+            src: [process.env.PUBLIC_URL + '/sounds/collision.wav'],
+            volume: 0.6,
+            onload: () => {
+                console.log('Audio loaded');
+            },
+        });
+
+        initialWorld();
+
+        // Cleanup on component unmount
+        return () => {
+            if (engineRef.current) {
+                Matter.Render.stop(engineRef.current.render);
+                Matter.Runner.stop(engineRef.current.runner);
+                engineRef.current.world.bodies = [];
+                Matter.Engine.clear(engineRef.current);
+                engineRef.current.render.canvas.remove();
+                engineRef.current.render.textures = {};
+                engineRef.current = null;
+            }
+            if (collisionSound.current) {
+                collisionSound.current.unload();
+                collisionSound.current = null;
+            }
+        };
+    }, [gameStarted]);
+
+    function initialWorld() {
         const engine = Engine.create();
-        engine.gravity.y = 0;
+        engine.gravity.y = 0.5;
         engineRef.current = engine;
+
         const render = Render.create({
             element: canvasRef.current,
             engine: engine,
@@ -176,16 +196,19 @@ const JettEatSnacks = () => {
                 height: height,
                 wireframes: false,
                 background: '#000000',
-            }
+            },
         });
+        engine.render = render;
+
         const runner = Runner.create();
+        engine.runner = runner;
+
         const jettBall = createJettBall();
         const snack = createSnack();
         const ring = createRing();
-        // Composite.add(engine.world, createRing());
         Composite.add(engine.world, [jettBall, snack, ...ring]);
 
-        // 启动引擎和运行器
+        // Start engine and runner
         Render.run(render);
         Runner.run(runner, engine);
 
@@ -197,12 +220,9 @@ const JettEatSnacks = () => {
                     (bodyA.label === 'jettBall' && bodyB.label === 'snack') ||
                     (bodyA.label === 'snack' && bodyB.label === 'jettBall')
                 ) {
-                    // console.log('碰');
                     const snackBall = bodyA.label === 'snack' ? bodyA : bodyB;
                     Composite.remove(engineRef.current.world, snackBall);
                     playCollisionSound();
-                    //禁止物理碰撞
-                    // pair.activeContacts = [];
                     pair.isActive = false;
                     addSnackBall();
                     addSnackBall();
@@ -211,24 +231,35 @@ const JettEatSnacks = () => {
         };
 
         Events.on(engineRef.current, 'collisionStart', handleCollision);
+    }
 
-        // 组件卸载时清理
-        return () => {
-            Events.off(engineRef.current, 'collisionStart', handleCollision);
-            Render.stop(render);
-            Runner.stop(runner);
-            Composite.clear(engine.world);
-            Engine.clear(engine);
-            render.canvas.remove();
-            render.textures = {};
-        };
-    }, [nside]); // 依赖于 nside，允许重新绘制圆环
-
-    return <div ref={canvasRef}>
-        {/* <button onClick={addSnackBall} style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}>
-            Add Food
-        </button> */}
-    </div>;
+    return (
+        <div ref={canvasRef} style={{ position: 'relative' }}>
+            {!gameStarted && (
+                <button
+                    onClick={() => setGameStarted(true)}
+                    style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1,
+                        padding: '15px 30px',
+                        fontSize: '24px',
+                        cursor: 'pointer',
+                        backgroundColor: '#28a745',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        outline: 'none',
+                    }}
+                >
+                    Start Game
+                </button>
+            )}
+        </div>
+    );
 };
 
 export default JettEatSnacks;
