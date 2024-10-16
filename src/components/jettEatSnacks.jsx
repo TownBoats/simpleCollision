@@ -8,6 +8,7 @@ const JettEatSnacks = () => {
     const engineRef = useRef(null);
     const width = window.innerWidth;
     const height = window.innerHeight;
+    let snackCount = 1;
 
     // Game state
     const [gameStarted, setGameStarted] = useState(false);
@@ -19,6 +20,8 @@ const JettEatSnacks = () => {
     const x = width / 2;
     const y = height / 2;
     const rectWidth = 2 * radius * Math.sin(Math.PI / nside) + 1;
+    const maxSpeed = 15;
+    const minSpeed = 5;
     let sides = [];
 
     // jettBall properties
@@ -79,7 +82,7 @@ const JettEatSnacks = () => {
             label: 'snack',
             collisionFilter: {
                 category: 0x0002,
-                mask: 0x0001 | 0x0004 | 0x0002,
+                mask: 0x0001 | 0x0004,
             },
         });
         const snackImage = new Image();
@@ -93,6 +96,44 @@ const JettEatSnacks = () => {
         });
 
         return snack;
+    }
+
+    function createExplosion(x, y, numParticles = 5) {
+        const particles = [];
+        for (let i = 0; i < numParticles; i++) {
+            const particleRadius = Math.random() * 5 + 2; // 粒子半径随机化
+            const particle = Bodies.circle(x, y, particleRadius, {
+                friction: 0,
+                frictionAir: 0.02, // 让粒子逐渐减速
+                restitution: 0.8,
+                render: {
+                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`, // 每个粒子随机颜色
+                },
+                collisionFilter: {
+                    category: 0x0008, // 粒子单独分组，不与其他物体碰撞
+                },
+            });
+
+            // 给粒子一个随机速度
+            const speed = Math.random() * 5 + 2;
+            const angle = Math.random() * Math.PI * 2;
+            Body.setVelocity(particle, {
+                x: speed * Math.cos(angle),
+                y: speed * Math.sin(angle),
+            });
+
+            particles.push(particle);
+        }
+
+        // 将粒子添加到世界中
+        Composite.add(engineRef.current.world, particles);
+
+        // 在短时间后移除粒子
+        setTimeout(() => {
+            particles.forEach(particle => {
+                Composite.remove(engineRef.current.world, particle);
+            });
+        }, 500); // 1秒后移除粒子
     }
 
     function createRing() {
@@ -142,6 +183,7 @@ const JettEatSnacks = () => {
 
     function addSnackBall() {
         const snack = createSnack();
+        snackCount++;
         Composite.add(engineRef.current.world, snack);
     }
 
@@ -216,19 +258,53 @@ const JettEatSnacks = () => {
             var pairs = event.pairs;
             pairs.forEach(function (pair) {
                 const { bodyA, bodyB } = pair;
+
+                // 检查是否是 jettBall 和 snack 的碰撞
                 if (
                     (bodyA.label === 'jettBall' && bodyB.label === 'snack') ||
                     (bodyA.label === 'snack' && bodyB.label === 'jettBall')
                 ) {
+                    // 确定 snackBall 是哪个
                     const snackBall = bodyA.label === 'snack' ? bodyA : bodyB;
+
+                    // 移除 snackBall，并在其位置创建爆炸效果
                     Composite.remove(engineRef.current.world, snackBall);
+                    createExplosion(snackBall.position.x, snackBall.position.y);
                     playCollisionSound();
                     pair.isActive = false;
-                    addSnackBall();
-                    addSnackBall();
+
+                    // 获取 jettBall
+                    const jettBall = bodyA.label === 'jettBall' ? bodyA : bodyB;
+
+                    // 增加 jettBall 的速度 0.5%
+                    const currentVelocity = jettBall.velocity;
+                    const currentSpeed = Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2);
+                    if (currentSpeed < maxSpeed) {
+                        const newVelocity = {
+                            x: currentVelocity.x * 1.005, // 速度增加 0.5%
+                            y: currentVelocity.y * 1.005, // 速度增加 0.5%
+                        };
+                        Matter.Body.setVelocity(jettBall, newVelocity); // 重新设置 jettBall 的新速度
+                    }
+                    // 增加 jettBall 的半径 1px
+                    const currentRadius = jettBall.circleRadius;
+                    const scaleFactor = (currentRadius + 0.01) / currentRadius; // 计算缩放比例
+                    Matter.Body.scale(jettBall, scaleFactor, scaleFactor); // 根据比例增大半径
+                    const jettImage = new Image();
+                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png'; // 设置图片路径
+                    configureSprite(jettBall, jettImage, currentRadius + 1); // 更新精灵的半径
+                    // 添加新的 snack
+                    if (snackCount <= 1000) {
+
+                        addSnackBall();
+                        addSnackBall();
+
+                    }
+                    snackCount--;
                 }
             });
         };
+
 
         Events.on(engineRef.current, 'collisionStart', handleCollision);
     }
