@@ -13,6 +13,10 @@ const JettEatSnacks = () => {
     // Game state
     const [gameStarted, setGameStarted] = useState(false);
 
+    // **Add state variables for snack counts**
+    const [eatenSnacks, setEatenSnacks] = useState(0); // Jett has eaten
+    const [currentSnacks, setCurrentSnacks] = useState(1); // Snacks in the world
+
     // Circle properties
     const nside = 100;
     const radius = height * 0.4;
@@ -101,20 +105,20 @@ const JettEatSnacks = () => {
     function createExplosion(x, y, numParticles = 5) {
         const particles = [];
         for (let i = 0; i < numParticles; i++) {
-            const particleRadius = Math.random() * 5 + 2; // 粒子半径随机化
+            const particleRadius = Math.random() * 5 + 2; // Randomize particle radius
             const particle = Bodies.circle(x, y, particleRadius, {
                 friction: 0,
-                frictionAir: 0.02, // 让粒子逐渐减速
+                frictionAir: 0.02, // Slow down particles over time
                 restitution: 0.8,
                 render: {
-                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`, // 每个粒子随机颜色
+                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`, // Random color
                 },
                 collisionFilter: {
-                    category: 0x0008, // 粒子单独分组，不与其他物体碰撞
+                    category: 0x0008, // Separate category to avoid collisions
                 },
             });
 
-            // 给粒子一个随机速度
+            // Assign random velocity
             const speed = Math.random() * 5 + 2;
             const angle = Math.random() * Math.PI * 2;
             Body.setVelocity(particle, {
@@ -125,15 +129,15 @@ const JettEatSnacks = () => {
             particles.push(particle);
         }
 
-        // 将粒子添加到世界中
+        // Add particles to the world
         Composite.add(engineRef.current.world, particles);
 
-        // 在短时间后移除粒子
+        // Remove particles after a short time
         setTimeout(() => {
             particles.forEach(particle => {
                 Composite.remove(engineRef.current.world, particle);
             });
-        }, 500); // 1秒后移除粒子
+        }, 500);
     }
 
     function createRing() {
@@ -185,6 +189,9 @@ const JettEatSnacks = () => {
         const snack = createSnack();
         snackCount++;
         Composite.add(engineRef.current.world, snack);
+
+        // **Increment current snacks count**
+        setCurrentSnacks(prevCount => prevCount + 1);
     }
 
     const playCollisionSound = () => {
@@ -259,58 +266,77 @@ const JettEatSnacks = () => {
             pairs.forEach(function (pair) {
                 const { bodyA, bodyB } = pair;
 
-                // 检查是否是 jettBall 和 snack 的碰撞
+                // Check for collision between jettBall and snack
                 if (
                     (bodyA.label === 'jettBall' && bodyB.label === 'snack') ||
                     (bodyA.label === 'snack' && bodyB.label === 'jettBall')
                 ) {
-                    // 确定 snackBall 是哪个
+                    // Identify the snackBall
                     const snackBall = bodyA.label === 'snack' ? bodyA : bodyB;
 
-                    // 移除 snackBall，并在其位置创建爆炸效果
+                    // Remove snackBall and create explosion
                     Composite.remove(engineRef.current.world, snackBall);
                     createExplosion(snackBall.position.x, snackBall.position.y);
                     playCollisionSound();
                     pair.isActive = false;
 
-                    // 获取 jettBall
+                    // **Update snack counts**
+                    setEatenSnacks(prevCount => prevCount + 1); // Increment eaten snacks
+                    setCurrentSnacks(prevCount => prevCount - 1); // Decrement current snacks
+
+                    // Get jettBall
                     const jettBall = bodyA.label === 'jettBall' ? bodyA : bodyB;
 
-                    // 增加 jettBall 的速度 0.5%
+                    // Increase jettBall speed by 0.5%
                     const currentVelocity = jettBall.velocity;
                     const currentSpeed = Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2);
                     if (currentSpeed < maxSpeed) {
                         const newVelocity = {
-                            x: currentVelocity.x * 1.005, // 速度增加 0.5%
-                            y: currentVelocity.y * 1.005, // 速度增加 0.5%
+                            x: currentVelocity.x * 1.005,
+                            y: currentVelocity.y * 1.005,
                         };
-                        Matter.Body.setVelocity(jettBall, newVelocity); // 重新设置 jettBall 的新速度
+                        Matter.Body.setVelocity(jettBall, newVelocity);
                     }
-                    // 增加 jettBall 的半径 1px
+                    // Increase jettBall radius by 1px
                     const currentRadius = jettBall.circleRadius;
-                    const scaleFactor = (currentRadius + 0.01) / currentRadius; // 计算缩放比例
-                    Matter.Body.scale(jettBall, scaleFactor, scaleFactor); // 根据比例增大半径
+                    const scaleFactor = (currentRadius + 0.01) / currentRadius;
+                    Matter.Body.scale(jettBall, scaleFactor, scaleFactor);
                     const jettImage = new Image();
-                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png'; // 设置图片路径
-                    configureSprite(jettBall, jettImage, currentRadius + 1); // 更新精灵的半径
-                    // 添加新的 snack
+                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png';
+                    configureSprite(jettBall, jettImage, currentRadius + 1);
+
+                    // Add new snacks
                     if (snackCount <= 1000) {
-
                         addSnackBall();
                         addSnackBall();
-
                     }
                     snackCount--;
                 }
             });
         };
 
-
         Events.on(engineRef.current, 'collisionStart', handleCollision);
     }
 
     return (
         <div ref={canvasRef} style={{ position: 'relative' }}>
+            {gameStarted && (
+                // **Display the counts**
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        color: 'white',
+                        zIndex: 1,
+                        fontSize: '18px',
+                        fontFamily: 'Arial, sans-serif',
+                    }}
+                >
+                    <p>Snacks eaten: {eatenSnacks}</p>
+                    <p>Snacks in world: {currentSnacks}</p>
+                </div>
+            )}
             {!gameStarted && (
                 <button
                     onClick={() => setGameStarted(true)}
