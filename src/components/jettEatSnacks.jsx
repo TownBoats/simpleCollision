@@ -36,6 +36,14 @@ const JettEatSnacks = () => {
 
     // Audio
     const collisionSound = useRef(null);
+    const killSounds = useRef(null);
+
+
+    function createNumSnack(n){
+        for (let i = 0; i < n; i++) {
+            addSnackBall();
+        }
+    }
 
     function getSnackPath() {
         const paths = [
@@ -63,7 +71,7 @@ const JettEatSnacks = () => {
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
@@ -75,8 +83,15 @@ const JettEatSnacks = () => {
     }
 
     function createSnack() {
-        const randomX = (Math.random() * 2 - 1) * radius / 2;
-        const randomY = (Math.random() * 2 - 1) * radius / 2;
+        // 计算生成区域的半径，即 radius - snackRadius
+        const randomRadius = (Math.random() * (radius - snackRadius));
+
+        // 随机生成角度，以便生成 x 和 y 偏移量
+        const randomAngle = Math.random() * 2 * Math.PI;
+
+        // 通过极坐标转换为笛卡尔坐标
+        const randomX = randomRadius * Math.cos(randomAngle);
+        const randomY = randomRadius * Math.sin(randomAngle);
 
         const snack = Bodies.circle(x + randomX, y + randomY, snackRadius, {
             friction: 0,
@@ -93,7 +108,7 @@ const JettEatSnacks = () => {
         snackImage.src = getSnackPath();
         configureSprite(snack, snackImage, snackRadius);
         const randomSpeed = 5;
-        const randomAngle = Math.random() * 2 * Math.PI;
+        // const randomAngle = Math.random() * 2 * Math.PI;
         Matter.Body.setVelocity(snack, {
             x: randomSpeed * Math.cos(randomAngle),
             y: randomSpeed * Math.sin(randomAngle),
@@ -200,18 +215,71 @@ const JettEatSnacks = () => {
         }
     };
 
+    const preloadSounds = () => {
+        return {
+            killSound1: new Howl({
+                src: [process.env.PUBLIC_URL + '/sounds/瓦/kill-sound/普通击杀音效/valorant-1-kill.mp3'],
+                volume: 1,
+                preload: true, // 提前加载音频
+            }),
+            killSound2: new Howl({
+                src: [process.env.PUBLIC_URL + '/sounds/瓦/kill-sound/普通击杀音效/valorant-2-kills.mp3'],
+                volume: 1,
+                preload: true,
+            }),
+            killSound3: new Howl({
+                src: [process.env.PUBLIC_URL + '/sounds/瓦/kill-sound/普通击杀音效/valorant-3-kills.mp3'],
+                volume: 1,
+                preload: true,
+            }),
+            killSound4: new Howl({
+                src: [process.env.PUBLIC_URL + '/sounds/瓦/kill-sound/普通击杀音效/valorant-4-kills.mp3'],
+                volume: 1,
+                preload: true,
+            }),
+            killSound5: new Howl({
+                src: [process.env.PUBLIC_URL + '/sounds/瓦/kill-sound/普通击杀音效/valorant-5-kills.mp3'],
+                volume: 1,
+                preload: true,
+            }),
+        };
+    };
+
+    const playKillSound = (counts) => {
+        console.log('counts' + counts);
+        if (counts === 5) {
+            
+            killSounds.current.killSound1.play();
+        } else if (counts === 25) {
+
+            console.log('kill sound2 played');
+            killSounds.current.killSound2.play();
+        } else if (counts === 125) {
+
+            killSounds.current.killSound3.play();
+
+        } else if (counts === 625) {
+            killSounds.current.killSound4.play();
+
+        } else if (counts === 3125) {
+            killSounds.current.killSound5.play();
+
+        }
+
+    };
+
+    const loadKillSound = () => {
+        killSounds.current = preloadSounds();
+    };
     useEffect(() => {
         if (!gameStarted) return; // Do not initialize until the game has started
 
         // Initialize audio after user interaction
         collisionSound.current = new Howl({
             src: [process.env.PUBLIC_URL + '/sounds/collision.wav'],
-            volume: 0.6,
-            onload: () => {
-                console.log('Audio loaded');
-            },
+            volume: 0.1,
         });
-
+        loadKillSound();
         initialWorld();
 
         // Cleanup on component unmount
@@ -256,7 +324,7 @@ const JettEatSnacks = () => {
         const snack = createSnack();
         const ring = createRing();
         Composite.add(engine.world, [jettBall, snack, ...ring]);
-
+        createNumSnack(625);
         // Start engine and runner
         Render.run(render);
         Runner.run(runner, engine);
@@ -281,7 +349,15 @@ const JettEatSnacks = () => {
                     pair.isActive = false;
 
                     // **Update snack counts**
-                    setEatenSnacks(prevCount => prevCount + 1); // Increment eaten snacks
+                    setEatenSnacks(prevCount => {
+                        const newCount = prevCount + 1;
+                        const isTrue = (newCount === 5 || newCount === 25 || newCount === 125 || newCount === 625 || newCount === 3125);
+                        if (isTrue) {
+                            playKillSound(newCount);
+                        }
+                        
+                        return newCount;
+                    }); // Increment eaten snacks
                     setCurrentSnacks(prevCount => prevCount - 1); // Decrement current snacks
 
                     // Get jettBall
@@ -302,7 +378,7 @@ const JettEatSnacks = () => {
                     const scaleFactor = (currentRadius + 0.01) / currentRadius;
                     Matter.Body.scale(jettBall, scaleFactor, scaleFactor);
                     const jettImage = new Image();
-                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett2-head.png';
+                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head.png';
                     configureSprite(jettBall, jettImage, currentRadius + 1);
 
                     // Add new snacks
@@ -310,6 +386,7 @@ const JettEatSnacks = () => {
                         addSnackBall();
                         addSnackBall();
                     }
+
                     snackCount--;
                 }
             });
@@ -317,6 +394,7 @@ const JettEatSnacks = () => {
 
         Events.on(engineRef.current, 'collisionStart', handleCollision);
     }
+
 
     return (
         <div ref={canvasRef} style={{ position: 'relative' }}>
