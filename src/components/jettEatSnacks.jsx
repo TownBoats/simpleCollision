@@ -324,7 +324,7 @@ const JettEatSnacks = () => {
         const snack = createSnack();
         const ring = createRing();
         Composite.add(engine.world, [jettBall, snack, ...ring]);
-        createNumSnack(625);
+        createNumSnack(1);
         // Start engine and runner
         Render.run(render);
         Runner.run(runner, engine);
