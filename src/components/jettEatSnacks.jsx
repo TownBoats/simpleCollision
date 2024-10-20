@@ -39,7 +39,7 @@ const JettEatSnacks = () => {
     const killSounds = useRef(null);
 
 
-    function createNumSnack(n){
+    function createNumSnack(n) {
         for (let i = 0; i < n; i++) {
             addSnackBall();
         }
@@ -71,7 +71,7 @@ const JettEatSnacks = () => {
         });
 
         const jettImage = new Image();
-        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head.png';
+        jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head2.png';
         const randomSpeed = 5;
         const randomAngle = Math.random() * 2 * Math.PI;
         configureSprite(jettBall, jettImage, jettBallRadius);
@@ -126,7 +126,9 @@ const JettEatSnacks = () => {
                 frictionAir: 0.02, // Slow down particles over time
                 restitution: 0.8,
                 render: {
-                    fillStyle: `hsl(${Math.random() * 360}, 100%, 50%)`, // Random color
+                    fillStyle: `hsl(${Math.random() * 360}, 100%, 70%, 0.8)`, // Random color
+                    // fillStyle: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.8)`, // Random color with 50% transparency
+
                 },
                 collisionFilter: {
                     category: 0x0008, // Separate category to avoid collisions
@@ -153,6 +155,32 @@ const JettEatSnacks = () => {
                 Composite.remove(engineRef.current.world, particle);
             });
         }, 500);
+    }
+
+    function createFlashEffect(x, y) {
+        const flash = Bodies.circle(x, y, 50, {
+            isStatic: true, // 不受物理影响
+            render: {
+                fillStyle: 'rgba(255, 255, 255, 0.5)', // 半透明白色
+            },
+        });
+    
+        Composite.add(engineRef.current.world, flash);
+    
+        // 渐隐消失
+        setTimeout(() => {
+            flash.render.fillStyle = 'rgba(255, 255, 255, 0)'; // 渐隐
+            Matter.World.remove(engineRef.current.world, flash);
+        }, 200); // 200毫秒后移除闪光
+    }
+
+    function removeEntitiesByLabel(world, label) {
+        const bodiesToRemove = world.bodies.filter(body => body.label === label);
+        bodiesToRemove.forEach(body => {
+            Matter.World.remove(world, body);
+            createExplosion(body.position.x, body.position.y,1);
+            // createFlashEffect(body.position.x, body.position.y);
+        });
     }
 
     function createRing() {
@@ -248,7 +276,7 @@ const JettEatSnacks = () => {
     const playKillSound = (counts) => {
         console.log('counts' + counts);
         if (counts === 5) {
-            
+
             killSounds.current.killSound1.play();
         } else if (counts === 25) {
 
@@ -324,7 +352,7 @@ const JettEatSnacks = () => {
         const snack = createSnack();
         const ring = createRing();
         Composite.add(engine.world, [jettBall, snack, ...ring]);
-        createNumSnack(1);
+        createNumSnack(1000);
         // Start engine and runner
         Render.run(render);
         Runner.run(runner, engine);
@@ -355,7 +383,8 @@ const JettEatSnacks = () => {
                         if (isTrue) {
                             playKillSound(newCount);
                         }
-                        
+                        if (newCount === 3150)
+                            removeEntitiesByLabel(engineRef.current.world, 'snack')
                         return newCount;
                     }); // Increment eaten snacks
                     setCurrentSnacks(prevCount => prevCount - 1); // Decrement current snacks
@@ -375,10 +404,10 @@ const JettEatSnacks = () => {
                     }
                     // Increase jettBall radius by 1px
                     const currentRadius = jettBall.circleRadius;
-                    const scaleFactor = (currentRadius + 0.01) / currentRadius;
+                    const scaleFactor = (currentRadius + 0.08) / currentRadius;
                     Matter.Body.scale(jettBall, scaleFactor, scaleFactor);
                     const jettImage = new Image();
-                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head.png';
+                    jettImage.src = process.env.PUBLIC_URL + '/images/character/jett/jett1-head2.png';
                     configureSprite(jettBall, jettImage, currentRadius + 1);
 
                     // Add new snacks
