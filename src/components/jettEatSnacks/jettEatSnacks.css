@@ -1,0 +1,78 @@
+/* Progress Bar Container */
+.progress-bar-container {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+    width: 80%;
+    height: 30px;
+    background-color: #444;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+}
+
+/* Each Segment */
+.segment {
+    position: relative;
+    height: 100%;
+    background-color: #666;
+}
+
+/* Filled Segment */
+.segment-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    transition: width 0.5s ease-in-out;
+}
+
+/* Milestone Marker */
+.milestone-marker {
+    position: absolute;
+    right: 0;
+    top: -5px;
+    width: 2px;
+    height: 40px;
+    background-color: #fff;
+    z-index: 2;
+}
+
+/* Milestone Label */
+.milestone-label {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Other styles */
+.start-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    padding: 15px 30px;
+    font-size: 24px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    outline: none;
+}
+
+.eaten-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    z-index: 1;
+    font-size: 18px;
+    font-family: Arial, sans-serif;
+  }
+  

@@ -4,7 +4,7 @@ import './App.css';
 import LearnMatterJs from './components/learnMatterJs';
 import LearnConstraint from './components/learnConstraint';
 import InnerPolygon from './components/innerPolygon';
-import JettEatSnacks from './components/jettEatSnacks';
+import JettEatSnacks from './components/jettEatSnacks/jettEatSnacks';
 import LearnHowl from './components/learnHowl';
 
 function App() {

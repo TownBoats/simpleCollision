@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Matter from "matter-js";
 import { Howl } from "howler";
-
+import './jettEatSnacks.css';
 const JettEatSnacks = () => {
     const { Engine, Render, Runner, Bodies, Body, Composite, Events } = Matter;
     const canvasRef = useRef(null);
@@ -37,6 +37,17 @@ const JettEatSnacks = () => {
     // Audio
     const collisionSound = useRef(null);
     const killSounds = useRef(null);
+
+    //进度条相关
+    const segments = [
+        { start: 0, end: 5 },
+        { start: 5, end: 25 },
+        { start: 25, end: 125 },
+        { start: 125, end: 625 },
+        { start: 625, end: 3125 },
+        { start: 3125, end: 3150 },
+      ];
+      const totalLength = 3150;
 
 
     function createNumSnack(n) {
@@ -181,6 +192,7 @@ const JettEatSnacks = () => {
             createExplosion(body.position.x, body.position.y,1);
             // createFlashEffect(body.position.x, body.position.y);
         });
+        snackCount = 0; // 重置计数器
     }
 
     function createRing() {
@@ -352,7 +364,7 @@ const JettEatSnacks = () => {
         const snack = createSnack();
         const ring = createRing();
         Composite.add(engine.world, [jettBall, snack, ...ring]);
-        createNumSnack(1000);
+        createNumSnack(0);
         // Start engine and runner
         Render.run(render);
         Runner.run(runner, engine);
@@ -420,54 +432,64 @@ const JettEatSnacks = () => {
                 }
             });
         };
-
         Events.on(engineRef.current, 'collisionStart', handleCollision);
     }
-
-
     return (
-        <div ref={canvasRef} style={{ position: 'relative' }}>
-            {gameStarted && (
-                // **Display the counts**
+        <div ref={canvasRef} style={{ position: "relative" }}>
+      {gameStarted && (
+        <div >
+          <div
+            className="eaten-label"
+          >
+            <p>Snacks eaten: {eatenSnacks}</p>
+            <p>Snacks in world: {currentSnacks}</p>
+          </div>
+          {/* Beautified Progress Bar */}
+          <div className="progress-bar-container">
+            {segments.map((segment, index) => {
+              const segmentLength = segment.end - segment.start;
+              const segmentWidthPercentage =
+                (segmentLength / totalLength) * 100;
+
+              let fillPercentage = 0;
+              if (eatenSnacks >= segment.end) {
+                fillPercentage = 100;
+              } else if (eatenSnacks > segment.start) {
+                fillPercentage =
+                  ((eatenSnacks - segment.start) / segmentLength) * 100;
+              } else {
+                fillPercentage = 0;
+              }
+
+              return (
                 <div
-                    style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        color: 'white',
-                        zIndex: 1,
-                        fontSize: '18px',
-                        fontFamily: 'Arial, sans-serif',
-                    }}
+                  key={index}
+                  className="segment"
+                  style={{ width: `${segmentWidthPercentage}%` }}
                 >
-                    <p>Snacks eaten: {eatenSnacks}</p>
-                    <p>Snacks in world: {currentSnacks}</p>
+                  <div
+                    className="segment-fill"
+                    style={{ width: `${fillPercentage}%` }}
+                  ></div>
+                  {index < segments.length - 1 && (
+                    <div className="milestone-marker"></div>
+                  )}
+                  <div className="milestone-label">{segment.end}</div>
                 </div>
-            )}
-            {!gameStarted && (
-                <button
-                    onClick={() => setGameStarted(true)}
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 1,
-                        padding: '15px 30px',
-                        fontSize: '24px',
-                        cursor: 'pointer',
-                        backgroundColor: '#28a745',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        outline: 'none',
-                    }}
-                >
-                    Start Game
-                </button>
-            )}
+              );
+            })}
+          </div>
         </div>
+      )}
+      {!gameStarted && (
+        <button
+          onClick={() => setGameStarted(true)}
+          className="start-button"
+        >
+          Start
+        </button>
+      )}
+    </div>
     );
 };
 
